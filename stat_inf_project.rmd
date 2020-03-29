@@ -1,0 +1,126 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(statsr)
+```
+
+### Load data
+
+Make sure your data and R Markdown files are in the same directory. When loaded
+your data file will be called `gss`. Delete this note when before you submit 
+your work. 
+
+```{r load-data}
+load("gss.Rdata")
+```
+
+
+
+* * *
+
+## Part 1: Data: Describe how the observations in the sample are collected, and the implications of this data collection method on the scope of inference (generalizability / causality).
+
+The dataset contains responses 57,601 responses from a survey conducted by the GSS.According to the GSS,most of the interviews were conducted in-person as it is the preferred method with few exceptions of phone interview. The GSS design is a repeated cross-sectional survey of a nationally representative sample of non-institutionalized adults who speak either English or Spanish, and the respondents are answering questions by selecting answers that best matched to their condition
+
+1.The sample size is less than 10% of the entire population
+
+<br>2.The sample observations are independent which means that the sample proportions are approximately normally distributed
+
+<br>3.There are at least 10 Success/Failures in the sample
+
+<br>4.Condition of CLT for proportions have been met and the sample distribution is approximately normal,which enables us to do an inference
+
+
+* * *
+
+## Part 2: Research question
+
+We define new variable 'Higher Education' as the following:
+<br>if the corresponding highest year of education (educ) >12,the respondent accepted higher higher education 
+<br>Question: Is race associated with the higher education rate of the US population? 
+<br> I am interested in thie question because of I am part of the 'Other race' and I always wonder if different races will expose to different opportunities for getting college education
+* * *
+
+## Part 3: Exploratory data analysis
+
+NOTE: Insert code chunks as needed by clicking on the "Insert a new code chunk" 
+button (green button with orange arrow) above. Make sure that your code is visible
+in the project you submit. Delete this note when before you submit your work.
+```{r}
+gss$college<-gss$educ>12
+sum(is.na(gss$college)!=TRUE)
+df<-gss
+
+#Remove all N/A values in college 
+df<-df %>% filter(!is.na(college))
+
+#Bar plot that shows the count of respondents and the proportion of college education receivers
+
+ggplot(df,aes(race,fill=factor(college)))+geom_bar()+geom_text(aes(label=..count..),stat="count",position=position_stack())
+# Interpretation: it seems like the college education receiver proportion are lower in Black and the Other race. 
+
+#Distribution of respondent age in each race group: the older the respondent,the less likely that they've received college education 
+ggplot(df,aes(race,age,fill=college))+geom_boxplot()
+#  The age distributions of each group centered at the mean.The median age of the respondents who received college education (blue color) are around 40 yrs old.
+``` 
+
+* * *
+
+## Part 4: Inference
+
+<br>Since we are comparing the proportion of two varibales and one of them has more than 2 levels,We are going to use Chi-Square independance test. We will check if the test-conditions have been met:
+<br>Independence:Sample is independent because
+<br>1.We have random sample
+<br>2.n<10% of the us population
+<br>3.no overlaps between each case under each level
+
+<br>Sample Size 
+<br>1.COndition met since we have at least 5 expected cases
+
+
+
+<br>Variables:Race (white,Black,Others),College(True,False)
+<br>Levels:Race contains more than two levels
+```{r}
+true_prop<-sum(df$college)/length(df$college)
+#expected proportion of college education
+true_prop
+
+#expected proportion for each group
+group_expected<-true_prop*table(df$race)
+group_expected
+#each of them have >5 success 
+```
+
+Hypothesis Testing Set-up
+<br>H0(Null Hypothesis):race and college education proportion are independent:there are no relationship between these two variables
+<br>HA:race and college are dependent;the higher education rate might be associated with race  
+
+```{r}
+#Load the MASS library so we could use the chisq.test function
+library(MASS)
+
+#Create a table for the two variables and levels
+df_tabl<-table(df$college,df$race)
+
+#Conduct a chi-square independence test 
+chisq.test(df_tabl)
+```
+Conclusion:
+<br>1.The p-value is extremely small (<2.2e-16) and significantly lower than alpha=0.05.
+
+<br>In other words, given there are no associate between race and college education rate,the probability of getting the observed value or higher is <0.05; therefore we rejected the null hypothesis with a 95% confidence interval and states that race is associated with the higher education rate. But at this point,we do not have enough evidence to prove that there is a causal reltionship between race and college attendance rate.
+<br>Next steps:we need to conduct further research and explore the relationshop between other variables and college education rate. For example,family income,parent education level can also be considered in further analysis.
